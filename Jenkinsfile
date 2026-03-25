@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     stages {
         stage('Build') {
             agent{
@@ -18,6 +17,12 @@ pipeline {
                     npm ci
                     npm run build
                 '''
+            }
+        }
+        stage('Test'){
+            steps {
+                echo "Test stage"
+                sh 'npm test'
             }
         }
     }
