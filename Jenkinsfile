@@ -40,10 +40,12 @@ pipeline {
                 }
             }
             steps {
-                echo "E2E"
-                npm install -g serve
-                serve -s build
-                npx playwright test
+                sh '''
+                    echo "E2E"
+                    npm install -g serve
+                    serve -s build
+                    npx playwright test
+                '''
             }
         }
     }
