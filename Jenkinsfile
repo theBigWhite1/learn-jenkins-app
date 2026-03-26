@@ -1,5 +1,6 @@
 pipeline {
     agent any
+
     stages {
         stage('Build') {
             agent {
@@ -9,8 +10,9 @@ pipeline {
                 }
             }
             steps {
-                echo 'Hello World'
+                echo 'Build stage'
                 sh '''
+                    set -e
                     ls -la
                     node --version
                     npm --version
@@ -19,6 +21,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Test') {
             agent {
                 docker {
@@ -27,11 +30,15 @@ pipeline {
                 }
             }
             steps {
-                echo "Test stage"
-                sh 'test -e build/index.html'
-                sh 'npm test'
+                echo 'Test stage'
+                sh '''
+                    set -e
+                    test -e build/index.html
+                    npm test
+                '''
             }
         }
+
         stage('E2E') {
             agent {
                 docker {
@@ -41,17 +48,30 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "E2E"
-                    npm install -g serve
-                    serve -s build
-                    npx playwright test
+                    set -e
+                    echo "E2E stage"
+
+                    node --version
+                    npm --version
+
+                    npm ci
+
+                    npx serve -s build -l 3000 &
+                    SERVER_PID=$!
+
+                    sleep 5
+
+                    npx playwright test --workers=1
+
+                    kill $SERVER_PID
                 '''
             }
         }
     }
+
     post {
         always {
-            junit 'test-results/junit.xml'
+            junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
         }
     }
 }
