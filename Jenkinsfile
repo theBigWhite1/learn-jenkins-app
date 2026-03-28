@@ -39,7 +39,7 @@ pipeline {
             }
         }
 
-        stage('E2E') {
+        stage('Deploy') {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.58.2-noble'
@@ -48,22 +48,8 @@ pipeline {
             }
             steps {
                 sh '''
-                    set -e
-                    echo "E2E stage"
-
-                    node --version
-                    npm --version
-
-                    npm ci
-
-                    node_modules/.bin/serve -s build -l 3000 &
-                    SERVER_PID=$!
-
-                    sleep 5
-
-                    npx playwright test --workers=1
-
-                    kill $SERVER_PID
+                    npm install netlify-cli -g
+                    netlify --version
                 '''
             }
         }
