@@ -35,13 +35,11 @@ pipeline {
                     steps {
                         sh '''
                             CI=true npm test -- --watchAll=false
-                            ls -la
-                            find . -name "*.xml" || true
                         '''
                     }
                     post {
                         always {
-                            junit 'junit.xml'
+                            junit 'test-results/junit.xml'
                         }
                     }
                 }
