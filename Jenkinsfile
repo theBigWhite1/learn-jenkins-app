@@ -17,7 +17,7 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "small
+                    echo "small change"
                     ls -la
                     node --version
                     npm --version
@@ -113,9 +113,6 @@ pipeline {
 
             steps {
                 sh '''
-                    npm install --no-save serve
-                    node_modules/.bin/serve -s build -l 3000 &
-                    sleep 10
                     npx playwright test --reporter=html
                 '''
             }
