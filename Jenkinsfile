@@ -17,7 +17,7 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "small change!"
+                    echo "small
                     ls -la
                     node --version
                     npm --version
@@ -75,7 +75,7 @@ pipeline {
                                 keepAll: false,
                                 reportDir: 'playwright-report',
                                 reportFiles: 'index.html',
-                                reportName: 'Playwright HTML Report',
+                                reportName: 'Playwright Local Report',
                                 reportTitles: '',
                                 useWrapperFileDirectly: true
                             ])
@@ -102,5 +102,39 @@ pipeline {
                 '''
             }
         }
+
+        stage('E2E') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.39.0-jammy'
+                    reuseNode true
+                }
+            }
+
+            steps {
+                sh '''
+                    npm install --no-save serve
+                    node_modules/.bin/serve -s build -l 3000 &
+                    sleep 10
+                    npx playwright test --reporter=html
+                '''
+            }
+
+            post {
+                always {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: false,
+                        keepAll: false,
+                        reportDir: 'playwright-report',
+                        reportFiles: 'index.html',
+                        reportName: 'Playwright E2E Report',
+                        reportTitles: '',
+                        useWrapperFileDirectly: true
+                    ])
+                }
+            }
+        }
+
     }
 }
