@@ -13,6 +13,7 @@ pipeline {
         stage('Build custom Docker image') {
             steps {
                 sh '''
+                    set -e
                     docker build -t ${PLAYWRIGHT_IMAGE} .
                 '''
             }
@@ -28,12 +29,17 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    ls -la
+                    echo "Node version:"
                     node --version
+                    echo "NPM version:"
                     npm --version
+
                     npm ci
                     npm run build
+
                     test -f build/index.html
+
+                    echo "Build completed successfully."
                     ls -la
                     ls -la build
                 '''
@@ -67,7 +73,7 @@ pipeline {
                     }
                 }
 
-                stage('E2E') {
+                stage('E2E tests') {
                     agent {
                         docker {
                             image "${PLAYWRIGHT_IMAGE}"
@@ -79,15 +85,18 @@ pipeline {
                         unstash 'app-build'
                         sh '''
                             set -e
+
+                            npm ci
+
                             npx serve -s build -l 3000 &
                             SERVER_PID=$!
 
                             for i in $(seq 1 30); do
                                 if curl -fs http://127.0.0.1:3000 > /dev/null; then
-                                    echo "App is up"
+                                    echo "Application is up."
                                     break
                                 fi
-                                echo "Waiting for app..."
+                                echo "Waiting for application to start..."
                                 sleep 1
                             done
 
@@ -115,7 +124,7 @@ pipeline {
             }
         }
 
-        stage('Deploy staging') {
+        stage('Deploy to staging') {
             when {
                 branch 'main'
             }
@@ -129,15 +138,17 @@ pipeline {
                 unstash 'app-source'
                 unstash 'app-build'
 
+                sh '''
+                    set -e
+                    npm ci
+                    netlify --version
+                    echo "Deploying to staging..."
+                    netlify deploy --site "$NETLIFY_SITE_ID" --dir=build --json > deploy-output.json
+                '''
+
                 script {
                     env.CI_ENVIRONMENT_URL = sh(
-                        script: '''
-                            set -e
-                            netlify --version
-                            echo "Deploying to staging. Site ID: $NETLIFY_SITE_ID"
-                            netlify deploy --site "$NETLIFY_SITE_ID" --dir=build --json > deploy-output.json
-                            node-jq -r '.deploy_url' deploy-output.json
-                        ''',
+                        script: "node-jq -r '.deploy_url' deploy-output.json",
                         returnStdout: true
                     ).trim()
                 }
@@ -173,7 +184,7 @@ pipeline {
             }
         }
 
-        stage('Deploy prod') {
+        stage('Deploy to production') {
             when {
                 branch 'main'
             }
@@ -189,8 +200,9 @@ pipeline {
 
                 sh '''
                     set -e
+                    npm ci
                     netlify --version
-                    echo "Deploying to production. Site ID: $NETLIFY_SITE_ID"
+                    echo "Deploying to production..."
                     netlify deploy --site "$NETLIFY_SITE_ID" --dir=build --prod
                 '''
 
